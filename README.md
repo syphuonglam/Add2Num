@@ -26,3 +26,38 @@ Run unit tests for the core only (Task 1 - test case):
 ```powershell
 mvn -pl core test
 ```
+Run the web application (verified sequence) (Task 2 - Web UI):
+
+```powershell
+mvn clean package
+java -jar web\target\web-0.0.1.jar
+```
+
+Then open `http://localhost:8080` in your browser.
+
+Developer notes
+
+- You can run the Spring Boot app directly from the `web` module folder where the plugin is declared:
+
+```powershell
+cd web
+mvn spring-boot:run
+```
+
+Project structure
+
+```
+Add2Num/
+├─ pom.xml                      # parent aggregator (packaging=pom)
+├─ core/
+│  ├─ pom.xml
+│  └─ src/main/java/mci/vietnam/splam/core/domain/
+│     ├─ MyBigNumber.java
+│     └─ BigNumberResult.java
+├─ web/
+│  ├─ pom.xml
+│  └─ src/main/java/mci/vietnam/splam/web/
+│     ├─ Add2NumApplication.java
+│     └─ controller/AdditionController.java
+└─ README.md
+```
