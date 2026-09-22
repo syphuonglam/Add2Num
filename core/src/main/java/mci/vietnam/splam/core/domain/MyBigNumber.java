@@ -24,27 +24,43 @@ public class MyBigNumber {
         int i = a.length() - 1;
         int j = b.length() - 1;
         int carry = 0;
-        StringBuilder sb = new StringBuilder();
+        char[] resultDigits = new char[Math.max(a.length(), b.length()) + 1];
+        int resultStart = resultDigits.length;
         int step = 1;
+        int da;
+        int db;
+        int total;
+        int digit;
+        int newCarry;
+        int resultLength;
+        String currentResult;
+        String msg;
+        StringBuilder messageBuilder = new StringBuilder(128);
 
         while (i >= 0 || j >= 0 || carry != 0) {
-            int da = i >= 0 ? a.charAt(i) - '0' : 0;
-            int db = j >= 0 ? b.charAt(j) - '0' : 0;
-            int total = da + db + carry;
-            int digit = total % 10;
-            int newCarry = total / 10;
+            da = i >= 0 ? a.charAt(i) - '0' : 0;
+            db = j >= 0 ? b.charAt(j) - '0' : 0;
+            total = da + db + carry;
+            digit = total % 10;
+            newCarry = total / 10;
 
-            sb.append((char) ('0' + digit));
+            resultDigits[--resultStart] = (char) ('0' + digit);
+            resultLength = resultDigits.length - resultStart;
 
-            String currentResult = sb.reverse().toString();
-            String msg;
+            currentResult = new String(resultDigits, resultStart, resultLength);
+                messageBuilder.setLength(0);
             if (carry == 0) {
-                msg = String.format("Bước %d: Lấy %d cộng %d được %d. Lưu %d vào kết quả, được %s. Ghi nhớ %d.",
-                        step, da, db, da + db, digit, currentResult, newCarry);
+                messageBuilder.append("Bước ").append(step).append(": Lấy ").append(da).append(" cộng ")
+                    .append(db).append(" được ").append(da + db).append(". Lưu ").append(digit)
+                    .append(" vào kết quả, được ").append(currentResult).append(". Ghi nhớ ").append(newCarry)
+                    .append('.');
             } else {
-                msg = String.format("Bước %d: Lấy %d cộng %d cộng nhớ %d được %d. Lưu %d vào kết quả, được %s. Ghi nhớ %d.",
-                        step, da, db, carry, total, digit, currentResult, newCarry);
+                messageBuilder.append("Bước ").append(step).append(": Lấy ").append(da).append(" cộng ")
+                    .append(db).append(" cộng nhớ ").append(carry).append(" được ").append(total)
+                    .append(". Lưu ").append(digit).append(" vào kết quả, được ").append(currentResult)
+                    .append(". Ghi nhớ ").append(newCarry).append('.');
             }
+                msg = messageBuilder.toString();
             lastSteps.add(msg);
             LOGGER.info(msg);
 
@@ -52,10 +68,9 @@ public class MyBigNumber {
             i--;
             j--;
             step++;
-            sb.reverse();
         }
 
-        String result = sb.reverse().toString();
+        String result = new String(resultDigits, resultStart, resultDigits.length - resultStart);
         return new BigNumberResult(result, Collections.unmodifiableList(new ArrayList<>(lastSteps)));
     }
 
