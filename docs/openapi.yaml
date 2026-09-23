@@ -1,0 +1,192 @@
+openapi: 3.0.3
+info:
+  title: Add2Num API
+  version: 1.0.0
+  description: |
+    Versioned JSON API for adding two arbitrarily long, non-negative integer
+    strings. The API returns a canonical decimal string and does not return
+    calculation steps.
+servers:
+  - url: /
+paths:
+  /api/v1/add:
+    post:
+      operationId: addNumbers
+      summary: Add two non-negative integer strings
+      description: |
+        Adds two decimal strings without using BigInteger in production
+        calculation. The HTTP request body is limited to 200,032 bytes.
+        Leading zeros are accepted and removed from the result.
+        The endpoint is stateless and safe for concurrent requests.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddRequest'
+            examples:
+              basic:
+                value:
+                  a: '123'
+                  b: '456'
+              leadingZeros:
+                value:
+                  a: '000123'
+                  b: '000456'
+      responses:
+        '200':
+          description: Addition completed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddResponse'
+              example:
+                result: '579'
+        '400':
+          description: |
+            The request is invalid, contains malformed JSON, or is oversized
+            if the implementation selects 400 for the input limit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation:
+                  value:
+                    code: VALIDATION_ERROR
+                    message: Request validation failed.
+                    field: a
+                    requestId: 8f3c3f19-1f39-4b8a-8f37-9cda0e4b16c2
+                malformedJson:
+                  value:
+                    code: MALFORMED_JSON
+                    message: Request body contains malformed JSON.
+                    requestId: 8f3c3f19-1f39-4b8a-8f37-9cda0e4b16c2
+                inputTooLarge:
+                  value:
+                    code: INPUT_TOO_LARGE
+                    message: Input exceeds the maximum allowed length.
+                    field: a
+                    requestId: 8f3c3f19-1f39-4b8a-8f37-9cda0e4b16c2
+        '406':
+          description: The requested response representation cannot be produced.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: NOT_ACCEPTABLE
+                message: Requested response format is not available.
+                requestId: 8f3c3f19-1f39-4b8a-8f37-9cda0e4b16c2
+        '413':
+          description: |
+            The request contains an operand longer than 100,000 digits. This
+            response is permitted by the specification; the final choice
+            between 413 and 400 remains an OPEN QUESTION.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: INPUT_TOO_LARGE
+                message: Input exceeds the maximum allowed length.
+                field: a
+                requestId: 8f3c3f19-1f39-4b8a-8f37-9cda0e4b16c2
+        '415':
+          description: The request Content-Type is not supported.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: UNSUPPORTED_MEDIA_TYPE
+                message: Content-Type must be application/json.
+                requestId: 8f3c3f19-1f39-4b8a-8f37-9cda0e4b16c2
+        '500':
+          description: An unexpected server failure occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: INTERNAL_ERROR
+                message: An unexpected error occurred.
+                requestId: 8f3c3f19-1f39-4b8a-8f37-9cda0e4b16c2
+      parameters:
+        - $ref: '#/components/parameters/AcceptHeader'
+components:
+  parameters:
+    AcceptHeader:
+      name: Accept
+      in: header
+      required: false
+      description: Clients should request JSON. Unsupported response formats produce 406.
+      schema:
+        type: string
+        default: application/json
+  schemas:
+    AddRequest:
+      type: object
+      required:
+        - a
+        - b
+      properties:
+        a:
+          type: string
+          pattern: '^[0-9]+$'
+          maxLength: 100000
+          description: Non-empty ASCII decimal digits. Leading zeros are accepted.
+          example: '123'
+        b:
+          type: string
+          pattern: '^[0-9]+$'
+          maxLength: 100000
+          description: Non-empty ASCII decimal digits. Leading zeros are accepted.
+          example: '456'
+      description: |
+        Both operands are JSON strings. Numeric JSON values, null, blank
+        strings, whitespace, signs, decimals, separators, and Unicode digits
+        are invalid. Unknown properties remain an OPEN QUESTION in the source
+        specification and are not constrained by this schema.
+    AddResponse:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)$'
+          description: Canonical decimal result with no leading zeros.
+          example: '579'
+      additionalProperties: false
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - VALIDATION_ERROR
+            - MALFORMED_JSON
+            - INPUT_TOO_LARGE
+            - UNSUPPORTED_MEDIA_TYPE
+            - NOT_ACCEPTABLE
+            - INTERNAL_ERROR
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          description: Safe client-facing message without submitted values or implementation details.
+          example: Request validation failed.
+        field:
+          type: string
+          description: Optional invalid request field.
+          enum:
+            - a
+            - b
+        requestId:
+          type: string
+          description: Optional opaque correlation identifier.
+          example: 8f3c3f19-1f39-4b8a-8f37-9cda0e4b16c2
+      additionalProperties: false

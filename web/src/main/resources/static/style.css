@@ -1,2 +1,64 @@
-body { background:#f8f9fa; }
-.result-box { background: #fff; border: 1px solid #e3e6ea; }
+:root {
+	--ink: #20313b;
+	--muted: #6d7d84;
+	--paper: #fffdf7;
+	--green: #2f8f68;
+	--green-dark: #246b51;
+	--orange: #ef9b3f;
+	--blue: #3787b8;
+	--line: #cbd7d6;
+	--soft-green: #e7f3ec;
+	--soft-orange: #fff1dc;
+}
+
+* { box-sizing: border-box; }
+body { min-height: 100vh; margin: 0; color: var(--ink); background: #e9f1ed; font-family: "Trebuchet MS", "Segoe UI", sans-serif; }
+.lesson-shell { width: min(1120px, 100%); margin: 0 auto; padding: 28px 18px 48px; }
+.lesson-header { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 24px; }
+.eyebrow { margin: 0 0 8px; color: var(--green-dark); font-size: .8rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+h1, h2, p { margin-top: 0; }
+h1 { margin-bottom: 8px; font-size: clamp(2rem, 5vw, 3.8rem); line-height: .98; }
+.intro { max-width: 620px; margin-bottom: 0; color: var(--muted); font-size: 1.05rem; }
+.lesson-tag { flex: 0 0 auto; padding: 10px 14px; border: 1px solid #b9d4c4; border-radius: 999px; color: var(--green-dark); background: var(--soft-green); font-weight: 800; }
+.lesson-grid { display: grid; grid-template-columns: minmax(260px, .7fr) minmax(0, 1.3fr); gap: 18px; }
+.panel { border: 1px solid rgba(71, 103, 96, .18); border-radius: 18px; background: var(--paper); box-shadow: 0 16px 35px rgba(51, 79, 68, .1); }
+.input-panel, .board-panel { padding: 22px; }
+.panel h2 { margin-bottom: 6px; font-size: 1.25rem; }
+.panel-copy { color: var(--muted); font-size: .92rem; }
+.language-select { width: 100%; margin: 8px 0 12px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; color: var(--ink); background: #fff; font: 700 .95rem "Trebuchet MS", sans-serif; }
+.language-select:focus { outline: 3px solid rgba(55, 135, 184, .2); border-color: var(--blue); }
+.number-field { display: block; margin: 18px 0; color: var(--muted); font-size: .9rem; font-weight: 800; }
+.number-field textarea { display: block; width: 100%; min-height: 76px; margin-top: 8px; padding: 12px; resize: vertical; border: 2px solid var(--line); border-radius: 12px; color: var(--ink); background: #fff; font: 700 1.3rem/1.3 "Cascadia Mono", Consolas, monospace; }
+.number-field textarea:focus { outline: 3px solid rgba(55, 135, 184, .2); border-color: var(--blue); }
+.button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+button { min-height: 44px; padding: 10px 16px; border: 0; border-radius: 10px; color: #fff; font: 800 .95rem "Trebuchet MS", sans-serif; cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .5; }
+.btn-start { background: var(--green); }
+.btn-start:hover { background: var(--green-dark); }
+.btn-previous { background: #6c8790; }
+.btn-previous:hover { background: #526b73; }
+.btn-next { background: var(--orange); }
+.btn-next:hover { background: #d98128; }
+.status-message { min-height: 28px; margin: 16px 0 0; color: #b64e37; font-weight: 800; }
+.status-message:empty { display: none; }
+.board-title { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.step-count { color: var(--muted); font-size: .85rem; font-weight: 800; }
+.math-board-wrap { width: 100%; overflow-x: auto; padding: 4px 0 12px; }
+.math-board { display: grid; width: max-content; min-width: 100%; gap: 3px; padding: 4px; border: 2px solid #55726b; border-radius: 12px; background: #d5e2dc; }
+.cell { display: grid; place-items: center; min-width: 48px; height: 54px; background: #fff; font: 800 1.5rem "Cascadia Mono", Consolas, monospace; }
+.cell.sign { color: var(--orange); }
+.cell.carry { height: 32px; color: #d9534f; background: #fff0ed; font-size: .95rem; }
+.cell.result { color: var(--blue); background: #e7f3fb; }
+.cell.line { height: 7px; background: #55726b; }
+.cell.active-column { background: #fff4b8; box-shadow: inset 0 0 0 3px #efbd46; }
+.instruction-box { min-height: 76px; margin-top: 18px; padding: 16px; border-left: 6px solid var(--orange); border-radius: 10px; color: #8d4d18; background: var(--soft-orange); font-size: 1.08rem; line-height: 1.5; }
+.result-line { margin-top: 16px; color: var(--muted); }
+.result-line strong { color: var(--blue); font: 800 1.3rem "Cascadia Mono", Consolas, monospace; }
+.d-none { display: none !important; }
+@media (max-width: 760px) {
+	.lesson-shell { padding: 22px 12px 32px; }
+	.lesson-header { display: block; }
+	.lesson-tag { display: inline-block; margin-top: 16px; }
+	.lesson-grid { grid-template-columns: 1fr; }
+	.panel { border-radius: 14px; }
+}

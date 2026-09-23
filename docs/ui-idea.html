@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Tương Tác Phép Cộng Lớp 3</title>
+    <style>
+        :root {
+            --primary-color: #4caf50;
+            --accent-color: #ff9800;
+            --bg-color: #eef2f3;
+            --grid-border: #b0bec5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        /* Khung nhập liệu cho giáo viên */
+        .input-panel {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input {
+            padding: 10px;
+            font-size: 18px;
+            width: 120px;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-start {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-next {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Bảng đặt tính dọc kiểu ô ly */
+        .math-board {
+            display: inline-grid;
+            grid-template-columns: repeat(5, 70px);
+            /* 5 cột: Dấu, Nghìn, Trăm, Chục, Đơn vị */
+            gap: 2px;
+            background-color: var(--grid-border);
+            border: 3px solid #37474f;
+            padding: 2px;
+            border-radius: 8px;
+            margin: 20px auto;
+            font-size: 32px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .cell {
+            background-color: white;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Hàng số nhớ nhỏ ở trên đầu */
+        .row-carry .cell {
+            font-size: 18px;
+            color: #e53935;
+            background-color: #ffebee;
+            font-weight: 900;
+        }
+
+        /* Đường gạch ngang bằng */
+        .row-line .cell {
+            height: 6px;
+            background-color: #37474f;
+        }
+
+        /* Kết quả */
+        .row-result .cell {
+            color: #1e88e5;
+            background-color: #e3f2fd;
+        }
+
+        /* Highlight cột đang tính */
+        .cell.active-column {
+            background-color: #fff9c4 !important;
+            border: 2px solid #fbc02d;
+        }
+
+        /* Khung lời thoại hướng dẫn học sinh */
+        .instruction-box {
+            background: #fff3e0;
+            border-left: 8px solid var(--accent-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 22px;
+            text-align: left;
+            min-height: 60px;
+            color: #e65100;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>🏫 Bảng Tương Tác Phép Cộng Lớp 3</h1>
+
+        <!-- Thanh điều khiển cho Giáo viên -->
+        <div class="input-panel">
+            <label>Số thứ 1: <input type="number" id="num1" value="485" min="0" max="999"></label>
+            <label>Số thứ 2: <input type="number" id="num2" value="267" min="0" max="999"></label>
+            <button class="btn-start" onclick="initLesson()">Bắt đầu dạy</button>
+            <button class="btn-next" id="nextBtn" onclick="nextStep()" disabled>Bước tiếp theo ▶</button>
+        </div>
+
+        <!-- Khu vực hiển thị bảng tính dọc -->
+        <div id="mathBoard" class="math-board" style="display: none;"></div>
+
+        <!-- Lời giảng của giáo viên trên bảng -->
+        <div class="instruction-box" id="instruction">Nhập hai số và bấm "Bắt đầu dạy" để hiển thị phép tính.</div>
+    </div>
+
+    <script>
+        let stepsData = [];
+        let currentStepIndex = -1;
+
+        function initLesson() {
+            const n1 = document.getElementById('num1').value;
+            const n2 = document.getElementById('num2').value;
+            if (!n1 || !n2) return alert("Vui lòng nhập đủ 2 số!");
+
+            const maxLen = Math.max(n1.length, n2.length);
+            const a = n1.padStart(maxLen, '0');
+            const b = n2.padStart(maxLen, '0');
+
+            stepsData = [];
+            let carry = 0;
+            let resultStr = "";
+
+            for (let i = maxLen - 1; i >= 0; i--) {
+                let da = parseInt(a[i]);
+                let db = parseInt(b[i]);
+                let total = da + db + carry;
+                let digit = total % 10;
+                let nextCarry = Math.floor(total / 10);
+
+                resultStr = digit + resultStr;
+                let colIndex = 4 - (maxLen - 1 - i);
+
+                let msg = `Hàng ${getColName(colIndex)}: Lấy ${da} cộng ${db}`;
+                if (carry > 0) msg += ` cộng thêm nhớ ${carry}`;
+                msg += ` bằng ${total}. Viết ${digit}`;
+                if (nextCarry > 0) msg += `, nhớ ${nextCarry} sang hàng tiếp theo.`;
+                else msg += `.`;
+
+                stepsData.push({
+                    col: colIndex,
+                    digit: digit,
+                    carryText: nextCarry > 0 ? nextCarry : "",
+                    carryCol: colIndex - 1,
+                    msg: msg,
+                    currentResult: resultStr
+                });
+
+                carry = nextCarry;
+            }
+
+            if (carry > 0) {
+                resultStr = carry + resultStr;
+                stepsData.push({
+                    col: 4 - maxLen,
+                    digit: carry,
+                    carryText: "",
+                    carryCol: -1,
+                    msg: `Hàng ${getColName(4 - maxLen)}: Hạ số nhớ ${carry} xuống kết quả.`,
+                    currentResult: resultStr
+                });
+            }
+
+            renderBoard(a, b);
+
+            currentStepIndex = -1;
+            document.getElementById('nextBtn').disabled = false;
+            document.getElementById('instruction').innerHTML = "✨ Phép tính đã lên bảng! Bấm nút <b>'Bước tiếp theo'</b> để bắt đầu giảng từng cột.";
+        }
+
+        function getColName(index) {
+            if (index === 4) return "Đơn vị";
+            if (index === 3) return "Chục";
+            if (index === 2) return "Trăm";
+            if (index === 1) return "Nghìn";
+            return "Chục nghìn";
+        }
+
+        function renderBoard(a, b) {
+            const board = document.getElementById('mathBoard');
+            board.style.display = 'grid';
+            board.innerHTML = '';
+
+            let matrix = Array(5).fill(null).map(() => Array(5).fill(''));
+
+            // Điền số thứ 1 (hàng index 1)
+            for (let i = 0; i < a.length; i++) {
+                matrix[1][4 - (a.length - 1 - i)] = a[i];
+            }
+
+            // Điền dấu cộng và số thứ 2 (hàng index 2)
+            matrix[2][0] = '+';
+            for (let i = 0; i < b.length; i++) {
+                matrix[2][4 - (b.length - 1 - i)] = b[i];
+            }
+
+            for (let r = 0; r < 5; r++) {
+                let rowClass = r === 0 ? 'row-carry' : r === 3 ? 'row-line' : r === 4 ? 'row-result' : '';
+                for (let c = 0; c < 5; c++) {
+                    let val = matrix[r][c];
+                    board.innerHTML += `<div class="cell ${rowClass}" id="cell-${r}-${c}">${val}</div>`;
+                }
+            }
+        }
+
+        function nextStep() {
+            currentStepIndex++;
+            if (currentStepIndex >= stepsData.length) {
+                document.getElementById('instruction').innerHTML = "🎉 Xuất sắc! Phép tính đã hoàn thành xong.";
+                document.getElementById('nextBtn').disabled = true;
+                document.querySelectorAll('.cell').forEach(c => c.classList.remove('active-column'));
+                return;
+            }
+
+            const step = stepsData[currentStepIndex];
+
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('active-column'));
+            for (let r = 0; r < 5; r++) {
+                let cell = document.getElementById(`cell-${r}-${step.col}`);
+                if (cell) cell.classList.add('active-column');
+            }
+
+            if (step.carryCol >= 0 && step.carryText !== "") {
+                let carryCell = document.getElementById(`cell-0-${step.carryCol}`);
+                if (carryCell) carryCell.innerText = step.carryText;
+            }
+
+            let resultCell = document.getElementById(`cell-4-${step.col}`);
+            if (resultCell) resultCell.innerText = step.digit;
+
+            document.getElementById('instruction').innerHTML = `<b>Bước ${currentStepIndex + 1}:</b> ${step.msg}`;
+        }
+    </script>
+
+</body>
+
+</html>

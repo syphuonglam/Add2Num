@@ -14,6 +14,32 @@ public class MyBigNumber {
         return sumWithHistory(stn1, stn2).getResult();
     }
 
+    // Result-only API for callers that do not need calculation history.
+    public String sumWithoutHistory(String stn1, String stn2) {
+        String a = normalize(stn1);
+        String b = normalize(stn2);
+        int i = a.length() - 1;
+        int j = b.length() - 1;
+        int carry = 0;
+        char[] resultDigits = new char[Math.max(a.length(), b.length()) + 1];
+        int resultStart = resultDigits.length;
+        int da;
+        int db;
+        int total;
+        int digit;
+
+        for (; i >= 0 || j >= 0 || carry != 0; i--, j--) {
+            da = i >= 0 ? a.charAt(i) - '0' : 0;
+            db = j >= 0 ? b.charAt(j) - '0' : 0;
+            total = da + db + carry;
+            digit = total % 10;
+            carry = total / 10;
+            resultDigits[--resultStart] = (char) ('0' + digit);
+        }
+
+        return new String(resultDigits, resultStart, resultDigits.length - resultStart);
+    }
+
     // Domain-friendly API returning history
     public BigNumberResult sumWithHistory(String stn1, String stn2) {
         lastSteps.clear();
@@ -35,9 +61,9 @@ public class MyBigNumber {
         int resultLength;
         String currentResult;
         String msg;
-        StringBuilder messageBuilder = new StringBuilder(128);
+        StringBuilder messageBuilder = new StringBuilder();
 
-        while (i >= 0 || j >= 0 || carry != 0) {
+        for (; i >= 0 || j >= 0 || carry != 0; i--, j--) {
             da = i >= 0 ? a.charAt(i) - '0' : 0;
             db = j >= 0 ? b.charAt(j) - '0' : 0;
             total = da + db + carry;
@@ -65,8 +91,6 @@ public class MyBigNumber {
             LOGGER.info(msg);
 
             carry = newCarry;
-            i--;
-            j--;
             step++;
         }
 

@@ -1,37 +1,275 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Add2Num</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Bảng cộng Add2Num</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/i18n.js"></script>
 </head>
-<body class="p-4">
-<div class="container">
-    <h1 class="mb-4">Add2Num — Large Number Addition</h1>
-
-    <form method="post" action="/add">
-        <div class="mb-3">
-            <label class="form-label">Number A</label>
-            <textarea class="form-control" name="a" rows="2" placeholder="Enter large number">[[${a}]]</textarea>
+<body>
+<main class="lesson-shell">
+    <header class="lesson-header">
+        <div>
+            <p class="eyebrow" data-i18n="eyebrow"></p>
+            <h1 data-i18n="title"></h1>
+            <p class="intro" data-i18n="intro"></p>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Number B</label>
-            <textarea class="form-control" name="b" rows="2" placeholder="Enter large number">[[${b}]]</textarea>
+        <div class="lesson-tag" data-i18n="tag"></div>
+    </header>
+
+    <section class="lesson-grid">
+        <div class="panel input-panel">
+            <h2 data-i18n="prepareTitle"></h2>
+            <p class="panel-copy" data-i18n="panelCopy"></p>
+            <label for="languageSelect" data-i18n="languageLabel"></label>
+            <select id="languageSelect" class="language-select">
+                <option value="vi">Tiếng Việt</option>
+                <option value="en">English</option>
+                <option value="ko">한국어</option>
+                <option value="ja">日本語</option>
+                <option value="zh">中文</option>
+                <option value="es">Español</option>
+            </select>
+            <form id="additionForm" method="post" action="/api/v1/add">
+                <label class="number-field">
+                    <span data-i18n="firstNumber"></span>
+                    <textarea name="a" rows="2" data-i18n-placeholder="firstPlaceholder">[[${a}]]</textarea>
+                </label>
+                <label class="number-field">
+                    <span data-i18n="secondNumber"></span>
+                    <textarea name="b" rows="2" data-i18n-placeholder="secondPlaceholder">[[${b}]]</textarea>
+                </label>
+                <div class="button-row calculate-row">
+                    <button id="calculateButton" class="btn-start" type="submit" data-i18n="start"></button>
+                </div>
+                <div class="button-row navigation-row">
+                    <button id="previousButton" class="btn-previous" type="button" disabled data-i18n="previous"></button>
+                    <button id="nextButton" class="btn-next" type="button" disabled data-i18n="next"></button>
+                </div>
+            </form>
+            <p id="errorMessage" class="status-message" role="alert"></p>
         </div>
-        <button class="btn btn-primary" type="submit">Calculate</button>
-    </form>
 
-    <div th:if="${result}" class="mt-4">
-        <h3>Result</h3>
-        <pre class="p-3 result-box">[[${result}]]</pre>
+        <div class="panel board-panel">
+            <div class="board-title">
+                <div>
+                    <p class="eyebrow" data-i18n="boardEyebrow"></p>
+                    <h2 data-i18n="boardTitle"></h2>
+                </div>
+                <span id="stepCount" class="step-count" data-i18n="notStarted"></span>
+            </div>
+            <div class="math-board-wrap">
+                <div id="mathBoard" class="math-board d-none" aria-live="polite"></div>
+            </div>
+            <div id="instruction" class="instruction-box" aria-live="polite" data-i18n="initialInstruction"></div>
+            <p id="resultLine" class="result-line d-none"><span data-i18n="result"></span> <strong id="resultValue"></strong></p>
+        </div>
+    </section>
+</main>
 
-        <h4 class="mt-3">Calculation Steps</h4>
-        <ol>
-            <li th:each="step : ${steps}">[[${step}]]</li>
-        </ol>
-    </div>
-</div>
+<script>
+    const i18n = window.add2NumI18n;
+    const form = document.getElementById('additionForm');
+    const calculateButton = document.getElementById('calculateButton');
+    const previousButton = document.getElementById('previousButton');
+    const nextButton = document.getElementById('nextButton');
+    const errorMessage = document.getElementById('errorMessage');
+    const mathBoard = document.getElementById('mathBoard');
+    const instruction = document.getElementById('instruction');
+    const resultLine = document.getElementById('resultLine');
+    const resultValue = document.getElementById('resultValue');
+    const stepCount = document.getElementById('stepCount');
+    const languageSelect = document.getElementById('languageSelect');
+    const firstInput = form.elements.a;
+    const secondInput = form.elements.b;
+    let steps = [];
+    let currentStep = -1;
+
+    i18n.setLanguage(localStorage.getItem('add2num-language') || 'vi');
+    languageSelect.addEventListener('change', () => {
+        i18n.setLanguage(languageSelect.value);
+        localStorage.setItem('add2num-language', languageSelect.value);
+        if (currentStep >= 0 && currentStep < steps.length) updateStepText();
+    });
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        resetLesson();
+        calculateButton.disabled = true;
+        calculateButton.textContent = i18n.format('calculating');
+
+        try {
+            const response = await fetch('/api/v1/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ a: firstInput.value, b: secondInput.value })
+            });
+            const body = await response.json();
+            if (!response.ok) throw new Error(i18n.errorMessage(body));
+            prepareLesson(firstInput.value, secondInput.value, body.result);
+        } catch (error) {
+            errorMessage.textContent = error.message || i18n.format('apiError');
+        } finally {
+            calculateButton.disabled = false;
+            calculateButton.textContent = i18n.format('start');
+        }
+    });
+
+    nextButton.addEventListener('click', showNextStep);
+    previousButton.addEventListener('click', showPreviousStep);
+
+    function resetLesson() {
+        errorMessage.textContent = '';
+        resultLine.classList.add('d-none');
+        mathBoard.classList.add('d-none');
+        previousButton.disabled = true;
+        nextButton.disabled = true;
+        steps = [];
+        currentStep = -1;
+        stepCount.textContent = i18n.format('preparing');
+        instruction.textContent = i18n.format('apiChecking');
+    }
+
+    function prepareLesson(firstValue, secondValue, apiResult) {
+        const first = normalize(firstValue);
+        const second = normalize(secondValue);
+        const width = Math.max(first.length, second.length);
+        const alignedFirst = first.padStart(width, '0');
+        const alignedSecond = second.padStart(width, '0');
+        steps = makeSteps(alignedFirst, alignedSecond, apiResult);
+        renderBoard(alignedFirst, alignedSecond, width);
+        resultValue.textContent = apiResult;
+        resultLine.classList.remove('d-none');
+        mathBoard.classList.remove('d-none');
+        previousButton.disabled = true;
+        nextButton.disabled = false;
+        stepCount.textContent = i18n.format('stepCount', { current: 0, total: steps.length });
+        instruction.textContent = i18n.format('readyInstruction');
+    }
+
+    function normalize(value) {
+        const trimmed = value.replace(/^0+/, '');
+        return trimmed || '0';
+    }
+
+    function makeSteps(first, second, apiResult) {
+        const resultDigits = [];
+        const generatedSteps = [];
+        let carry = 0;
+        for (let index = first.length - 1; index >= 0; index--) {
+            const firstDigit = Number(first[index]);
+            const secondDigit = Number(second[index]);
+            const total = firstDigit + secondDigit + carry;
+            const digit = total % 10;
+            const nextCarry = Math.floor(total / 10);
+            resultDigits.unshift(String(digit));
+            generatedSteps.push({ column: index, first: firstDigit, second: secondDigit, carry, total, digit, nextCarry });
+            carry = nextCarry;
+        }
+        if (carry) {
+            resultDigits.unshift(String(carry));
+            generatedSteps.push({ column: -1, finalCarry: carry });
+        }
+        if (resultDigits.join('') !== apiResult) throw new Error(i18n.format('resultMismatch'));
+        return generatedSteps;
+    }
+
+    function renderBoard(first, second, width) {
+        mathBoard.style.gridTemplateColumns = `repeat(${width + 1}, minmax(48px, 1fr))`;
+        mathBoard.replaceChildren();
+        addBoardRow('carry', Array(width + 1).fill(''));
+        addBoardRow('', ['+', ...first.split('')]);
+        addBoardRow('', ['', ...second.split('')]);
+        addBoardRow('line', Array(width + 1).fill(''));
+        addBoardRow('result', Array(width + 1).fill(''));
+    }
+
+    function addBoardRow(rowClass, values) {
+        values.forEach((value, index) => {
+            const cell = document.createElement('div');
+            cell.className = `cell ${rowClass}`;
+            cell.dataset.column = index;
+            cell.textContent = value;
+            mathBoard.appendChild(cell);
+        });
+    }
+
+    function showNextStep() {
+        currentStep++;
+        if (currentStep >= steps.length) {
+            instruction.textContent = i18n.format('completed');
+            previousButton.disabled = false;
+            nextButton.disabled = true;
+            document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('active-column'));
+            stepCount.textContent = i18n.format('stepCount', { current: steps.length, total: steps.length });
+            return;
+        }
+        const step = steps[currentStep];
+        renderStepState();
+        updateStepText();
+    }
+
+    function showPreviousStep() {
+        if (currentStep < 0) return;
+        currentStep--;
+        renderStepState();
+        if (currentStep < 0) {
+            instruction.textContent = i18n.format('readyInstruction');
+        } else {
+            updateStepText();
+        }
+    }
+
+    function renderStepState() {
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.classList.remove('active-column');
+        });
+        mathBoard.querySelectorAll('.result, .carry').forEach(cell => {
+            cell.textContent = '';
+        });
+
+        for (let index = 0; index <= currentStep; index++) {
+            const step = steps[index];
+            document.querySelectorAll(`[data-column="${step.column + 1}"]`)
+                .forEach(cell => cell.classList.add('active-column'));
+            const resultCells = mathBoard.querySelectorAll('.result');
+            const resultIndex = step.column + 1;
+            if (resultCells[resultIndex]) {
+                resultCells[resultIndex].textContent = step.finalCarry || step.digit;
+            }
+            if (step.nextCarry && step.column > 0) {
+                mathBoard.querySelectorAll('.carry')[step.column].textContent = step.nextCarry;
+            }
+        }
+
+        if (currentStep >= 0 && currentStep < steps.length) {
+            document.querySelectorAll(`[data-column="${steps[currentStep].column + 1}"]`)
+                .forEach(cell => cell.classList.add('active-column'));
+        }
+        previousButton.disabled = currentStep < 0;
+        nextButton.disabled = currentStep >= steps.length;
+        stepCount.textContent = i18n.format('stepCount', {
+            current: Math.max(0, Math.min(currentStep + 1, steps.length)),
+            total: steps.length
+        });
+    }
+
+    function updateStepText() {
+        const step = steps[currentStep];
+        const message = step.finalCarry
+            ? i18n.format('finalCarry', { carry: step.finalCarry })
+            : i18n.format('step', {
+                first: step.first,
+                second: step.second,
+                carryText: step.carry ? i18n.format('carryText', { carry: step.carry }) : '',
+                total: step.total,
+                digit: step.digit,
+                carrySentence: i18n.format('carrySentence', { carry: step.nextCarry })
+            });
+        instruction.textContent = `${i18n.format('stepLabel', { number: currentStep + 1 })}${message}`;
+        stepCount.textContent = i18n.format('stepCount', { current: currentStep + 1, total: steps.length });
+    }
+</script>
 </body>
 </html>
